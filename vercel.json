@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "bookit/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "bookit/dist"
+      }
+    }
+  ],
+  "routes": []
+}

@@ -1,0 +1,15 @@
+# Render service configuration for bookit-api
+# This instructs Render to treat the `bookit-api` folder as a separate service
+version: 0.2
+services:
+  - type: web
+    name: bookit-api
+    env: node
+    plan: free
+    branch: main
+    root: bookit-api
+    buildCommand: "npm ci && npm run build"
+    startCommand: "npm start"
+    envVars:
+      - key: NODE_ENV
+        value: production
