@@ -101,9 +101,9 @@ const Checkout = () => {
       const validationResult = bookingSchema.safeParse(formData);
       
       if (!validationResult.success) {
-        // Show the first validation error
-        const firstError = validationResult.error.errors[0];
-        toast.error(firstError.message);
+        // Show the first validation error (Zod exposes issues)
+        const firstIssue = validationResult.error.issues && validationResult.error.issues[0];
+        toast.error(firstIssue?.message || 'Please check your input');
         return;
       }
 
