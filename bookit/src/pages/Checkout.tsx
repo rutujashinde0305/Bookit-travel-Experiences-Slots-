@@ -20,8 +20,24 @@ import { Toaster } from "sonner";
 
 const bookingSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
-  email: z.string().trim().email("Invalid email address").max(255),
-  phone: z.string().trim().regex(/^\+91[6-9]\d{9}$/, "Phone number must start with +91 followed by a valid 10-digit Indian mobile number"),
+  email: z.string()
+    .trim()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address")
+    .max(255, "Email is too long")
+    .refine((email) => email.includes("@") && email.includes("."), {
+      message: "Please enter a valid email address",
+    }),
+  phone: z.string()
+    .trim()
+    .min(1, "Phone number is required")
+    .regex(/^\+91[6-9]\d{9}$/, "Please enter a valid Indian mobile number (+91 followed by 10 digits starting with 6-9)")
+    .refine((phone) => phone.startsWith("+91"), {
+      message: "Phone number must start with +91",
+    })
+    .refine((phone) => phone.length === 13, {
+      message: "Phone number must be exactly 10 digits after +91",
+    }),
   spots: z.number().min(1).max(20),
 });
 
@@ -57,19 +73,20 @@ const Checkout = () => {
   };
 
   const formatPhoneNumber = (value: string) => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
+    // Remove all non-digit characters except for the + sign
+    const cleanedValue = value.replace(/[^\d+]/g, '');
     
-    // If no digits, return empty string
-    if (!digits.length) return '';
+    // If empty, return empty string
+    if (!cleanedValue.length) return '';
     
-    // Always start with +91
-    if (!value.startsWith('+91')) {
-      return '+91' + digits.slice(0, 10);
+    // If doesn't start with +91, add it
+    if (!cleanedValue.startsWith('+91')) {
+      return '+91' + cleanedValue.replace(/^\+91/, '').slice(0, 10);
     }
     
-    // Keep only the first 10 digits after +91
-    return '+91' + digits.slice(digits.length - 10, digits.length);
+    // Keep +91 and up to 10 digits after it
+    const digits = cleanedValue.slice(3); // remove +91
+    return '+91' + digits.slice(0, 10); // keep only first 10 digits after +91
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,7 +97,17 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const validated = bookingSchema.parse(formData);
+      // Validate form data
+      const validationResult = bookingSchema.safeParse(formData);
+      
+      if (!validationResult.success) {
+        // Show the first validation error
+        const firstError = validationResult.error.errors[0];
+        toast.error(firstError.message);
+        return;
+      }
+
+      const validated = validationResult.data;
       if (!slot) throw new Error('Slot not found');
       if (validated.spots > slot.available_spots) throw new Error('Not enough spots available');
 
